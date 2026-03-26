@@ -126,19 +126,6 @@ collab-editor/
 
 ---
 
-## 🔑 Key Code
-
-```typescript
-import { WebSocketServer } from 'ws'
-import { setupWSConnection } from 'y-websocket/bin/utils'
-
-const wss = new WebSocketServer({ port: 1234 })
-
-wss.on('connection', (ws, req) => {
-  // y-websocket handles ALL the CRDT sync logic
-  setupWSConnection(ws, req)
-})
-```
 
 ---
 
@@ -203,43 +190,10 @@ YJS_WS_PORT=1234
 # Client (Vite)
 VITE_API_URL=http://localhost:3000
 VITE_WS_URL=ws://localhost:1234
-```
 
----
 
-## 🐳 Docker Compose
 
-```yaml
-version: '3.8'
-services:
-  app:
-    build: ./server
-    ports:
-      - "3000:3000"
-      - "1234:1234"
-    environment:
-      - DATABASE_URL=postgresql://postgres:password@db:5432/collab_editor
-      - REDIS_URL=redis://redis:6379
-    depends_on:
-      - db
-      - redis
 
-  db:
-    image: postgres:15
-    environment:
-      POSTGRES_DB: collab_editor
-      POSTGRES_PASSWORD: password
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-
-  redis:
-    image: redis:7-alpine
-    ports:
-      - "6379:6379"
-
-volumes:
-  postgres_data:
-```
 
 ---
 
