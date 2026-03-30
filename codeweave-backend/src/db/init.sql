@@ -1,0 +1,1 @@
+-- TODO: CREATE TABLE users, rooms, room_members, snapshots, notes
