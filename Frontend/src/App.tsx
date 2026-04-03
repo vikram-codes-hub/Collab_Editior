@@ -2,14 +2,11 @@ import React from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import AuthPage from './pages/authpage'
 
-/*
-  Lazy-load heavier pages so the auth page loads instantly.
-  Create these files as you build each phase.
-*/
+
 const HomePage   = React.lazy(() => import('./pages/homepage'))
 const EditorPage = React.lazy(() => import('./pages/editiorpage'))
 
-/* ── Simple auth guard ─────────────────────────────────────── */
+/*Simple auth guard*/
 const getToken = () => localStorage.getItem('token')
 
 const PrivateRoute = ({ children }: { children: React.ReactNode }) => {
@@ -20,7 +17,7 @@ const PublicRoute = ({ children }: { children: React.ReactNode }) => {
   return !getToken() ? <>{children}</> : <Navigate to="/" replace />
 }
 
-/* ── App ───────────────────────────────────────────────────── */
+/*App*/
 const App = () => {
   return (
     <BrowserRouter>
