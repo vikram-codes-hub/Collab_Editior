@@ -6,7 +6,7 @@ import AuthPage from './pages/authpage'
   Lazy-load heavier pages so the auth page loads instantly.
   Create these files as you build each phase.
 */
-const HomePage   = React.lazy(() => import('./pages/HomePage'))
+const HomePage   = React.lazy(() => import('./pages/homepage'))
 const EditorPage = React.lazy(() => import('./pages/editiorpage'))
 
 /* ── Simple auth guard ─────────────────────────────────────── */
@@ -41,18 +41,18 @@ const App = () => {
           <Route
             path="/"
             element={
-              <PrivateRoute>
+              // <PrivateRoute>
                 <HomePage />
-              </PrivateRoute>
+              // </PrivateRoute>
             }
           />
 
           <Route
             path="/room/:roomId"
             element={
-              <PrivateRoute>
+              // <PrivateRoute>
                 <EditorPage />
-              </PrivateRoute>
+              // </PrivateRoute>
             }
           />
 
