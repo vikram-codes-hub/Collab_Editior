@@ -433,7 +433,7 @@ export function VideoPanel({
                 videoRef={p.videoRef}
                 speaking={p.speaking}
                 muted={p.muted}
-                camOff={p.camOff ?? !camOn && p.isLocal}
+                camOff={p.camOff ?? (!camOn && p.isLocal)}
                 isLocal={p.isLocal}
               />
               {/* Name below tile — font: Inter */}
