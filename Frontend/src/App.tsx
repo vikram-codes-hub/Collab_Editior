@@ -1,85 +1,116 @@
 import React from 'react'
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import AuthPage from './pages/authpage'
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
+import { AnimatePresence, motion } from 'framer-motion'
+import LoadingScreen from './components/loadingscreen'
 
+/* ── Lazy pages ───────────────────────────────────────────── */
+const LandingPage = React.lazy(() => import('./pages/LandingPage'))
+const AuthPage    = React.lazy(() => import('./pages/authpage'))
+const HomePage    = React.lazy(() => import('./pages/homepage'))
+const EditorPage  = React.lazy(() => import('./pages/editiorpage'))
 
-const HomePage   = React.lazy(() => import('./pages/homepage'))
-const EditorPage = React.lazy(() => import('./pages/editiorpage'))
-
-/*Simple auth guard*/
+/* ── Auth helpers ─────────────────────────────────────────── */
 const getToken = () => localStorage.getItem('token')
 
-const PrivateRoute = ({ children }: { children: React.ReactNode }) => {
-  return getToken() ? <>{children}</> : <Navigate to="/auth" replace />
-}
+const PrivateRoute = ({ children }: { children: React.ReactNode }) =>
+  getToken() ? <>{children}</> : <Navigate to="/auth" replace />
 
-const PublicRoute = ({ children }: { children: React.ReactNode }) => {
-  return !getToken() ? <>{children}</> : <Navigate to="/" replace />
-}
+const PublicRoute = ({ children }: { children: React.ReactNode }) =>
+  !getToken() ? <>{children}</> : <Navigate to="/home" replace />
 
-/*App*/
-const App = () => {
+/* ── Page transition wrapper ──────────────────────────────── */
+const PageTransition = ({ children }: { children: React.ReactNode }) => (
+  <motion.div
+    initial={{ opacity: 0, y: 6 }}
+    animate={{ opacity: 1,  y: 0 }}
+    exit={{ opacity: 0,     y: -6 }}
+    transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+    style={{ width: '100%', height: '100%' }}
+  >
+    {children}
+  </motion.div>
+)
+
+/* ── Animated routes (needs location for AnimatePresence) ─── */
+function AnimatedRoutes() {
+  const location = useLocation()
+
   return (
-    <BrowserRouter>
-      <React.Suspense fallback={<PageLoader />}>
-        <Routes>
+    <AnimatePresence mode="wait">
+      <Routes location={location} key={location.pathname}>
 
-          {/* Public — redirect to home if already logged in */}
-          <Route
-            path="/auth"
-            element={
-              <PublicRoute>
+        {/* Landing — public marketing page */}
+        <Route
+          path="/landing"
+          element={
+            <PageTransition>
+              <LandingPage />
+            </PageTransition>
+          }
+        />
+
+        {/* Auth — redirect to /home if already logged in */}
+        <Route
+          path="/auth"
+          element={
+            <PublicRoute>
+              <PageTransition>
                 <AuthPage />
-              </PublicRoute>
-            }
-          />
+              </PageTransition>
+            </PublicRoute>
+          }
+        />
 
-          {/* Protected — redirect to /auth if not logged in */}
-          <Route
-            path="/"
-            element={
-              // <PrivateRoute>
+        {/* Home — room list */}
+        <Route
+          path="/home"
+          element={
+            // Uncomment when auth is wired:
+            // <PrivateRoute>
+              <PageTransition>
                 <HomePage />
-              // </PrivateRoute>
-            }
-          />
+              </PageTransition>
+            // </PrivateRoute>
+          }
+        />
 
-          <Route
-            path="/room/:roomId"
-            element={
-              // <PrivateRoute>
+        {/* Editor room */}
+        <Route
+          path="/room/:roomId"
+          element={
+            // <PrivateRoute>
+              <PageTransition>
                 <EditorPage />
-              // </PrivateRoute>
-            }
-          />
+              </PageTransition>
+            // </PrivateRoute>
+          }
+        />
 
-          {/* Catch-all */}
-          <Route path="*" element={<Navigate to="/" replace />} />
+        {/* Root → landing if not logged in, home if logged in */}
+        <Route
+          path="/"
+          element={
+            getToken()
+              ? <Navigate to="/home" replace />
+              : <Navigate to="/landing" replace />
+          }
+        />
 
-        </Routes>
-      </React.Suspense>
-    </BrowserRouter>
+        {/* Catch-all */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+
+      </Routes>
+    </AnimatePresence>
   )
 }
 
-export default App
-
-/* ── Full-screen loader shown during lazy page load ─────────── */
-const PageLoader = () => (
-  <div style={{
-    minHeight: '100vh',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    background: '#0d0d10',
-  }}>
-    <div style={{
-      width: 28,
-      height: 28,
-      border: '2px solid rgba(124,111,247,0.2)',
-      borderTop: '2px solid #7c6ff7',
-      borderRadius: '50%',
-      animation: 'spin 0.7s linear infinite',
-    }} />
-  </div>
+/* ── App ──────────────────────────────────────────────────── */
+const App = () => (
+  <BrowserRouter>
+    <React.Suspense fallback={<LoadingScreen message="Loading…" />}>
+      <AnimatedRoutes />
+    </React.Suspense>
+  </BrowserRouter>
 )
+
+export default App
