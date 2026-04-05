@@ -2,7 +2,7 @@ import { WebSocketServer } from 'ws'
 import { setupWSConnection } from 'y-websocket/bin/utils'
 import * as Y from 'yjs'
 import { saveSnapshot, loadSnapshot } from './snapshotService'
-import { SNAPSHOT_INTERVAL_MS } from '../constants'
+import { SNAPSHOT_INTERVAL_MS } from '../constant'
 
 // ── In-memory doc store ────────────────────────────────────
 // roomId → Y.Doc

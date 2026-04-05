@@ -1,5 +1,5 @@
 import { Server, Socket } from 'socket.io'
-import { runCode, RunResult } from '../services/codeRunner'
+import { runCode, RunResult } from '../services/coderunner'
 import { publish, subscribe } from '../services/redis'
 
 /* ============================================================
@@ -116,6 +116,6 @@ export const registerTerminalHandlers = (io: Server, socket: Socket) => {
   // ── terminal:clear ────────────────────────────────────────
   // Client requests to clear terminal for everyone in room
   socket.on('terminal:clear', (data: { roomId: string }) => {
-    io.to(roomId).emit('terminal:clear')
+    io.to(data.roomId).emit('terminal:clear')
   })
 }
