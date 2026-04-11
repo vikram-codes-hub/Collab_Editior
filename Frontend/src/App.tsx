@@ -3,13 +3,13 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-route
 import { AnimatePresence, motion } from 'framer-motion'
 import LoadingScreen from './components/loadingscreen'
 
-/* ── Lazy pages ───────────────────────────────────────────── */
-const LandingPage = React.lazy(() => import('./pages/LandingPage'))
+/*Lazy pages*/
+const LandingPage = React.lazy(() => import('./pages/landingpage'))
 const AuthPage    = React.lazy(() => import('./pages/authpage'))
 const HomePage    = React.lazy(() => import('./pages/homepage'))
 const EditorPage  = React.lazy(() => import('./pages/editiorpage'))
 
-/* ── Auth helpers ─────────────────────────────────────────── */
+/*Auth helpers*/
 const getToken = () => localStorage.getItem('token')
 
 const PrivateRoute = ({ children }: { children: React.ReactNode }) =>
@@ -18,7 +18,7 @@ const PrivateRoute = ({ children }: { children: React.ReactNode }) =>
 const PublicRoute = ({ children }: { children: React.ReactNode }) =>
   !getToken() ? <>{children}</> : <Navigate to="/home" replace />
 
-/* ── Page transition wrapper ──────────────────────────────── */
+/*Page transition wrapper*/
 const PageTransition = ({ children }: { children: React.ReactNode }) => (
   <motion.div
     initial={{ opacity: 0, y: 6 }}
@@ -31,7 +31,7 @@ const PageTransition = ({ children }: { children: React.ReactNode }) => (
   </motion.div>
 )
 
-/* ── Animated routes (needs location for AnimatePresence) ─── */
+/*Animated routes (needs location for AnimatePresence)*/
 function AnimatedRoutes() {
   const location = useLocation()
 
@@ -104,7 +104,7 @@ function AnimatedRoutes() {
   )
 }
 
-/* ── App ──────────────────────────────────────────────────── */
+/*App*/
 const App = () => (
   <BrowserRouter>
     <React.Suspense fallback={<LoadingScreen message="Loading…" />}>
