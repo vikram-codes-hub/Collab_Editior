@@ -68,3 +68,15 @@ export const startYjsServer = (port: number) => {
 
   console.log(`✅ y-websocket server running on ws://localhost:${port}`)
 }
+
+-- ── Notes (collaborative notepad per room) ─────────────────
+CREATE TABLE IF NOT EXISTS notes (
+  id         UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  room_id    UUID UNIQUE REFERENCES rooms(id) ON DELETE CASCADE,
+  content    TEXT NOT NULL DEFAULT '',
+  updated_by UUID REFERENCES users(id) ON DELETE SET NULL,
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_notes_room
+  ON notes(room_id);

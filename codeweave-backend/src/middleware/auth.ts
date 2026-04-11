@@ -10,10 +10,9 @@ export interface AuthRequest extends Request {
   }
 }
 
-/* ── JWT auth middleware ───────────────────────────────────
-   Verifies Bearer token on every protected route
-   Attaches user to req.user
-   ──────────────────────────────────────────────────────── */
+/* JWT auth middleware*/
+// Verifies Bearer token on every protected route
+// Attaches user to req.user
 export const authMiddleware = async (
   req:  AuthRequest,
   res:  Response,

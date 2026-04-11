@@ -1,37 +1,39 @@
-import { pool } from '../db/postgres'
 import * as Y from 'yjs'
+import {
+  saveSnapshot   as dbSave,
+  getSnapshot    as dbGet,
+  deleteSnapshot as dbDelete,
+} from '../models/snapshot'
 
-// Save Yjs doc state to PostgreSQL
+/*Snapshot Service
+   Bridge between Yjs docs and the snapshot model
+   Called by yjsServer.ts
+*/
+
+/*Save Yjs doc state to PostgreSQL*/
 export const saveSnapshot = async (
   roomId: string,
-  doc: Y.Doc
+  doc:    Y.Doc
 ): Promise<void> => {
   const content = Buffer.from(Y.encodeStateAsUpdate(doc))
-
-  await pool.query(
-    `INSERT INTO snapshots (room_id, content)
-     VALUES ($1, $2)
-     ON CONFLICT (room_id)
-     DO UPDATE SET content = $2, saved_at = NOW()`,
-    [roomId, content]
-  )
+  await dbSave(roomId, content)
 }
 
-// Load snapshot from PostgreSQL and apply to doc
+/*Load snapshot and apply to Yjs doc*/
 export const loadSnapshot = async (
   roomId: string,
-  doc: Y.Doc
+  doc:    Y.Doc
 ): Promise<boolean> => {
-  const { rows } = await pool.query(
-    `SELECT content FROM snapshots
-     WHERE room_id = $1
-     ORDER BY saved_at DESC
-     LIMIT 1`,
-    [roomId]
-  )
+  const snapshot = await dbGet(roomId)
+  if (!snapshot) return false
 
-  if (!rows[0]) return false
-
-  Y.applyUpdate(doc, rows[0].content)
+  Y.applyUpdate(doc, snapshot.content)
   return true
+}
+
+/*Delete snapshot*/
+export const deleteRoomSnapshot = async (
+  roomId: string
+): Promise<void> => {
+  await dbDelete(roomId)
 }
