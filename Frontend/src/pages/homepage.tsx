@@ -1,6 +1,4 @@
-// homepage.tsx — fully responsive, all components wired
-// Fonts: Syne (logo/heading) | Manrope (body/meta) | Inter (UI chrome) | JetBrains (room id/lang)
-
+// homepage.tsx — wired to real stores + API
 import { useState, useMemo, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -9,17 +7,10 @@ import { LanguageBadge, UserCountBadge } from '../components/badge'
 import Modal from '../components/modal'
 import Tooltip from '../components/tooltip'
 import LoadingScreen from '../components/loadingscreen'
-
-/* ── Mock data ────────────────────────────────────────────── */
-const MOCK_USER = { name: 'Alex Rivera', email: 'alex@depot.dev' }
-
-const MOCK_ROOMS = [
-  { id: 'rm_01', name: 'API Refactor', language: 'TypeScript', description: 'Cleaning up the auth service endpoints and adding proper error handling', members: [{ name: 'Alex Rivera' },{ name: 'Sam Okonkwo' },{ name: 'Priya Nair' }], onlineCount: 3, lastActive: '2 min ago', createdAt: '2024-01-15' },
-  { id: 'rm_02', name: 'Dashboard UI', language: 'React',      description: 'Building the analytics dashboard with recharts and Tailwind',            members: [{ name: 'Jordan Lee' },{ name: 'Maya Chen' }],                            onlineCount: 1, lastActive: '18 min ago', createdAt: '2024-01-14' },
-  { id: 'rm_03', name: 'ML Pipeline',  language: 'Python',     description: 'Data preprocessing and model training scripts for the recommendation engine', members: [{ name: 'Finn Walsh' },{ name: 'Zara Ahmed' },{ name: 'Leo Park' },{ name: 'Nina Russo' },{ name: 'Omar Diallo' }], onlineCount: 0, lastActive: '3 hours ago', createdAt: '2024-01-12' },
-  { id: 'rm_04', name: 'Auth Service', language: 'Go',         description: 'JWT implementation and OAuth2 provider integration',                      members: [{ name: 'Sam Okonkwo' },{ name: 'Priya Nair' }],                          onlineCount: 2, lastActive: '45 min ago', createdAt: '2024-01-11' },
-  { id: 'rm_05', name: 'Mobile App',   language: 'TypeScript', description: 'React Native screens for the iOS and Android client',                     members: [{ name: 'Maya Chen' }],                                                   onlineCount: 0, lastActive: 'Yesterday',   createdAt: '2024-01-10' },
-]
+import useAuthStore  from '../store/authstore'
+import useRoomStore  from '../store/roomstore'
+import useUIStore    from '../store/uiStore'
+import { Room }      from '../types'
 
 const LANGUAGES = ['JavaScript','TypeScript','Python','Go','Rust','Java','C++','HTML','CSS','Shell','Markdown']
 
@@ -32,13 +23,18 @@ const GridIcon    = () => <svg width="14" height="14" viewBox="0 0 14 14" fill="
 const ListIcon    = () => <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M4 3.5h8M4 7h8M4 10.5h8" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/><circle cx="1.5" cy="3.5" r="1" fill="currentColor"/><circle cx="1.5" cy="7" r="1" fill="currentColor"/><circle cx="1.5" cy="10.5" r="1" fill="currentColor"/></svg>
 const ArrowRight  = () => <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M2.5 6.5h8M7.5 3.5l3 3-3 3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/></svg>
 const SpinnerIcon = () => <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style={{ animation: 'spin 0.7s linear infinite' }}><circle cx="7" cy="7" r="5.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeDasharray="28" strokeDashoffset="10" opacity="0.8"/></svg>
+const LogoutIcon  = () => <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M5 2H3a1 1 0 00-1 1v7a1 1 0 001 1h2M9 9.5l3-3-3-3M12 6.5H5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/></svg>
 
 /* ── Room card ────────────────────────────────────────────── */
-interface Room { id: string; name: string; language: string; description: string; members: { name: string }[]; onlineCount: number; lastActive: string; createdAt: string }
-
-function RoomCard({ room, index, view, onClick }: { room: Room; index: number; view: 'grid'|'list'; onClick: () => void }) {
+function RoomCard({ room, index, view, onClick }: {
+  room: Room; index: number; view: 'grid'|'list'; onClick: () => void
+}) {
   const [hovered, setHovered] = useState(false)
   const isGrid = view === 'grid'
+
+  // Build members array for AvatarGroup
+  const members = room.members?.map(m => ({ name: m.username })) ?? []
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
@@ -59,57 +55,83 @@ function RoomCard({ room, index, view, onClick }: { room: Room; index: number; v
         position: 'relative', overflow: 'hidden',
       }}
     >
-      {room.onlineCount > 0 && (
+      {/* Online stripe */}
+      {(room.online_count ?? 0) > 0 && (
         <div style={{ position: 'absolute', left: 0, top: '20%', bottom: '20%', width: 2, background: 'var(--color-accent)', borderRadius: '0 2px 2px 0' }}/>
       )}
+
+      {/* Top row */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: 8 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0 }}>
           <span style={{ fontFamily: 'var(--font-ui)', fontSize: '0.875rem', fontWeight: 500, color: 'var(--color-text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {room.name}
           </span>
-          {room.onlineCount > 0 && <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--color-success)', flexShrink: 0 }}/>}
+          {(room.online_count ?? 0) > 0 && (
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--color-success)', flexShrink: 0 }}/>
+          )}
         </div>
         <LanguageBadge language={room.language} />
       </div>
+
+      {/* Description — grid only */}
       {isGrid && (
         <p style={{ fontFamily: 'var(--font-body)', fontSize: '0.775rem', color: 'var(--color-text-muted)', lineHeight: 1.6, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', margin: 0 }}>
-          {room.description}
+          {room.name} — {room.language} room
         </p>
       )}
+
+      {/* Bottom row */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', marginTop: isGrid ? 'auto' : 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <AvatarGroup users={room.members} max={3} size="sm" />
-          <span style={{ fontFamily: 'var(--font-ui)', fontSize: '0.7rem', color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: 3 }}><UsersIcon />{room.members.length}</span>
-          <span style={{ fontFamily: 'var(--font-ui)', fontSize: '0.7rem', color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: 3 }}><ClockIcon />{room.lastActive}</span>
+          {members.length > 0 && <AvatarGroup users={members} max={3} size="sm" />}
+          <span style={{ fontFamily: 'var(--font-ui)', fontSize: '0.7rem', color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: 3 }}>
+            <UsersIcon />{room.member_count ?? members.length}
+          </span>
+          <span style={{ fontFamily: 'var(--font-ui)', fontSize: '0.7rem', color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: 3 }}>
+            <ClockIcon />{new Date(room.created_at).toLocaleDateString()}
+          </span>
         </div>
         <motion.div animate={{ opacity: hovered ? 1 : 0, x: hovered ? 0 : -4 }} style={{ color: 'var(--color-accent-light)', display: 'flex' }}>
           <ArrowRight />
         </motion.div>
       </div>
-      {isGrid && <span style={{ fontFamily: 'var(--font-code)', fontSize: '0.6rem', color: 'var(--color-text-hint)', letterSpacing: '0.04em' }}>{room.id}</span>}
+
+      {/* Room ID chip */}
+      {isGrid && (
+        <span style={{ fontFamily: 'var(--font-code)', fontSize: '0.6rem', color: 'var(--color-text-hint)', letterSpacing: '0.04em' }}>
+          {room.id.slice(0, 8)}…
+        </span>
+      )}
     </motion.div>
   )
 }
 
 /* ── Create room body ─────────────────────────────────────── */
-function CreateRoomBody({ onClose, onCreate }: { onClose: () => void; onCreate: (n: string, l: string) => void }) {
-  const [name, setName]       = useState('')
-  const [language, setLang]   = useState('TypeScript')
-  const [loading, setLoading] = useState(false)
-  const [nameErr, setNameErr] = useState('')
+function CreateRoomBody({ onClose, onCreate }: {
+  onClose: () => void
+  onCreate: (n: string, l: string) => Promise<void>
+}) {
+  const [name,     setName]    = useState('')
+  const [language, setLang]    = useState('TypeScript')
+  const [loading,  setLoading] = useState(false)
+  const [nameErr,  setNameErr] = useState('')
 
   const handleCreate = async () => {
     if (!name.trim() || name.length < 2) { setNameErr('At least 2 characters'); return }
     setLoading(true)
-    await new Promise(r => setTimeout(r, 600))
-    onCreate(name.trim(), language)
-    setLoading(false)
+    try {
+      await onCreate(name.trim(), language)
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
       <div>
-        <label style={{ fontFamily: 'var(--font-ui)', fontSize: '0.75rem', fontWeight: 500, color: nameErr ? 'var(--color-danger)' : 'var(--color-text-secondary)', display: 'block', marginBottom: 6 }}>Room name</label>
+        <label style={{ fontFamily: 'var(--font-ui)', fontSize: '0.75rem', fontWeight: 500, color: nameErr ? 'var(--color-danger)' : 'var(--color-text-secondary)', display: 'block', marginBottom: 6 }}>
+          Room name
+        </label>
         <input
           autoFocus value={name}
           onChange={e => { setName(e.target.value); setNameErr('') }}
@@ -120,19 +142,22 @@ function CreateRoomBody({ onClose, onCreate }: { onClose: () => void; onCreate: 
           onBlur={e  => { e.target.style.borderColor=nameErr?'var(--color-danger)':'var(--color-border-md)'; e.target.style.boxShadow='none' }}
         />
         <AnimatePresence>
-          {nameErr && <motion.span initial={{ opacity:0, y:-4 }} animate={{ opacity:1, y:0 }} exit={{ opacity:0 }} style={{ fontFamily:'var(--font-body)', fontSize:'0.7rem', color:'var(--color-danger)', display:'block', marginTop:4 }}>{nameErr}</motion.span>}
+          {nameErr && <motion.span initial={{ opacity:0,y:-4 }} animate={{ opacity:1,y:0 }} exit={{ opacity:0 }} style={{ fontFamily:'var(--font-body)', fontSize:'0.7rem', color:'var(--color-danger)', display:'block', marginTop:4 }}>{nameErr}</motion.span>}
         </AnimatePresence>
       </div>
+
       <div>
         <label style={{ fontFamily: 'var(--font-ui)', fontSize: '0.75rem', fontWeight: 500, color: 'var(--color-text-secondary)', display: 'block', marginBottom: 8 }}>Language</label>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
           {LANGUAGES.map(lang => (
             <motion.button key={lang} onClick={() => setLang(lang)} whileTap={{ scale: 0.95 }}
-              style={{ fontFamily:'var(--font-code)', fontSize:'0.7rem', padding:'4px 10px', borderRadius:'var(--radius-full)', border:`1px solid ${language===lang?'var(--color-accent)':'var(--color-border)'}`, background:language===lang?'var(--color-accent-dim)':'transparent', color:language===lang?'var(--color-accent-light)':'var(--color-text-muted)', cursor:'pointer', transition:'all 150ms ease' }}
-            >{lang}</motion.button>
+              style={{ fontFamily:'var(--font-code)', fontSize:'0.7rem', padding:'4px 10px', borderRadius:'var(--radius-full)', border:`1px solid ${language===lang?'var(--color-accent)':'var(--color-border)'}`, background:language===lang?'var(--color-accent-dim)':'transparent', color:language===lang?'var(--color-accent-light)':'var(--color-text-muted)', cursor:'pointer', transition:'all 150ms ease' }}>
+              {lang}
+            </motion.button>
           ))}
         </div>
       </div>
+
       <div style={{ display:'flex', gap:8, justifyContent:'flex-end', paddingTop:4 }}>
         <motion.button onClick={onClose} whileHover={{ background:'var(--color-hover)' }} whileTap={{ scale:0.97 }}
           style={{ fontFamily:'var(--font-ui)', fontSize:'0.8125rem', fontWeight:500, color:'var(--color-text-secondary)', background:'transparent', border:'1px solid var(--color-border-md)', borderRadius:'var(--radius-sm)', padding:'0.5rem 1rem', cursor:'pointer', transition:'background 150ms ease' }}>
@@ -170,74 +195,109 @@ function EmptyState({ onCreateRoom }: { onCreateRoom: () => void }) {
 
 /* ── HomePage ─────────────────────────────────────────────── */
 export default function HomePage() {
-  const navigate = useNavigate()
-  const [rooms,      setRooms]      = useState(MOCK_ROOMS)
-  const [showModal,  setShowModal]  = useState(false)
+  const navigate   = useNavigate()
+
+  // ── Real stores (replaces mock data) ──────────────────────
+  const { user, logout }                        = useAuthStore()
+  const { rooms, loadingRooms, fetchRooms, createRoom } = useRoomStore()
+  const { createRoomOpen, openCreateRoom, closeCreateRoom } = useUIStore()
+
   const [search,     setSearch]     = useState('')
   const [view,       setView]       = useState<'grid'|'list'>('grid')
   const [filterLang, setFilterLang] = useState('all')
-  const [loading,    setLoading]    = useState(true)
   const [isMobile,   setIsMobile]   = useState(false)
 
+  // ── Fetch rooms on mount ───────────────────────────────────
+  useEffect(() => {
+    fetchRooms()
+  }, [])
+
+  // ── Responsive ────────────────────────────────────────────
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 600)
     check(); window.addEventListener('resize', check)
     return () => window.removeEventListener('resize', check)
   }, [])
 
-  useEffect(() => { const t = setTimeout(() => setLoading(false), 500); return () => clearTimeout(t) }, [])
-
-  const hour = new Date().getHours()
+  const hour     = new Date().getHours()
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening'
 
+  // ── Filter + search ───────────────────────────────────────
   const filtered = useMemo(() => rooms.filter(r => {
-    const ms = r.name.toLowerCase().includes(search.toLowerCase()) || r.description.toLowerCase().includes(search.toLowerCase())
+    const ms = r.name.toLowerCase().includes(search.toLowerCase())
     const ml = filterLang === 'all' || r.language === filterLang
     return ms && ml
   }), [rooms, search, filterLang])
 
   const allLangs    = ['all', ...Array.from(new Set(rooms.map(r => r.language)))]
-  const onlineTotal = rooms.reduce((s, r) => s + r.onlineCount, 0)
+  const onlineTotal = rooms.reduce((s, r) => s + (r.online_count ?? 0), 0)
 
-  const handleCreate = (name: string, language: string) => {
-    const newRoom = { id:`rm_0${rooms.length+1}`, name, language, description:'A new collaborative coding room', members:[{ name:MOCK_USER.name }], onlineCount:1, lastActive:'just now', createdAt:new Date().toISOString() }
-    setRooms(prev => [newRoom, ...prev])
-    setShowModal(false)
-    navigate(`/room/${newRoom.id}`)
+  // ── Create room ────────────────────────────────────────────
+  const handleCreate = async (name: string, language: string) => {
+    try {
+      const room = await createRoom(name, language)
+      closeCreateRoom()
+      navigate(`/room/${room.id}`)
+    } catch (err: any) {
+      console.error('Create room failed:', err.message)
+    }
   }
 
-  if (loading) return <LoadingScreen message="Loading workspace…" />
+  if (loadingRooms && rooms.length === 0) {
+    return <LoadingScreen message="Loading workspace…" />
+  }
 
   return (
     <div style={{ minHeight:'100vh', background:'var(--color-app)', display:'flex', flexDirection:'column' }}>
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
 
-      {/* Topbar */}
+      {/* ── Topbar ── */}
       <header style={{ height:44, borderBottom:'1px solid var(--color-border)', background:'var(--color-surface)', display:'flex', alignItems:'center', padding:'0 clamp(1rem,4vw,1.5rem)', gap:10, flexShrink:0, position:'sticky', top:0, zIndex:20 }}>
+        {/* Logo — font: Syne */}
         <motion.span initial={{ opacity:0, x:-8 }} animate={{ opacity:1, x:0 }}
-          style={{ fontFamily:'var(--font-heading)', fontSize:'1rem', fontWeight:800, color:'var(--color-text-primary)', letterSpacing:'-0.03em' }}>
+          style={{ fontFamily:'var(--font-heading)', fontSize:'1rem', fontWeight:800, color:'var(--color-text-primary)', letterSpacing:'-0.03em', cursor:'pointer' }}
+          onClick={() => navigate('/landing')}
+        >
           depot
         </motion.span>
+
         <div style={{ flex:1 }}/>
-        {onlineTotal > 0 && <motion.div initial={{ opacity:0 }} animate={{ opacity:1 }} transition={{ delay:0.3 }}><UserCountBadge count={onlineTotal} /></motion.div>}
+
+        {/* Online count */}
+        {onlineTotal > 0 && (
+          <motion.div initial={{ opacity:0 }} animate={{ opacity:1 }} transition={{ delay:0.3 }}>
+            <UserCountBadge count={onlineTotal} />
+          </motion.div>
+        )}
+
+        {/* New room button */}
         <Tooltip content="New room" side="bottom">
-          <motion.button onClick={() => setShowModal(true)} whileHover={{ background:'var(--color-hover)' }} whileTap={{ scale:0.93 }}
+          <motion.button onClick={openCreateRoom} whileHover={{ background:'var(--color-hover)' }} whileTap={{ scale:0.93 }}
             style={{ background:'transparent', border:'1px solid var(--color-border)', borderRadius:'var(--radius-sm)', color:'var(--color-text-muted)', padding:'5px 7px', cursor:'pointer', display:'flex' }}>
             <PlusIcon />
           </motion.button>
         </Tooltip>
-        <div style={{ width:30, height:30, borderRadius:'50%', background:'var(--color-accent-dim)', border:'1px solid rgba(124,111,247,0.3)', display:'flex', alignItems:'center', justifyContent:'center', fontFamily:'var(--font-ui)', fontSize:'0.7rem', fontWeight:600, color:'var(--color-accent-light)', cursor:'pointer' }}>
-          {MOCK_USER.name.split(' ').map(n => n[0]).join('')}
-        </div>
+
+        {/* User avatar — real user initials */}
+        <Tooltip content="Sign out" side="bottom">
+          <motion.div
+            onClick={logout}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            style={{ width:30, height:30, borderRadius:'50%', background:'var(--color-accent-dim)', border:'1px solid rgba(124,111,247,0.3)', display:'flex', alignItems:'center', justifyContent:'center', fontFamily:'var(--font-ui)', fontSize:'0.7rem', fontWeight:600, color:'var(--color-accent-light)', cursor:'pointer' }}
+          >
+            {user?.username?.slice(0,2).toUpperCase() ?? 'U'}
+          </motion.div>
+        </Tooltip>
       </header>
 
-      {/* Main */}
+      {/* ── Main ── */}
       <main style={{ flex:1, maxWidth:900, width:'100%', margin:'0 auto', padding:'clamp(1.5rem,4vw,2.5rem) clamp(1rem,4vw,1.5rem)' }}>
 
-        {/* Greeting */}
+        {/* Greeting — real username */}
         <motion.div initial={{ opacity:0, y:12 }} animate={{ opacity:1, y:0 }} transition={{ duration:0.4, ease:[0.16,1,0.3,1] }} style={{ marginBottom:'1.75rem' }}>
           <h1 style={{ fontFamily:'var(--font-heading)', fontSize:'clamp(1.4rem,5vw,2rem)', fontWeight:800, color:'var(--color-text-primary)', letterSpacing:'-0.03em', marginBottom:5 }}>
-            {greeting}, {MOCK_USER.name.split(' ')[0]}
+            {greeting}, {user?.username ?? 'there'}
           </h1>
           <p style={{ fontFamily:'var(--font-body)', fontSize:'0.875rem', color:'var(--color-text-muted)', margin:0 }}>
             {rooms.length} room{rooms.length !== 1 ? 's' : ''} · {onlineTotal > 0 ? `${onlineTotal} online` : 'no one online'}
@@ -248,6 +308,7 @@ export default function HomePage() {
         <motion.div initial={{ opacity:0, y:8 }} animate={{ opacity:1, y:0 }} transition={{ delay:0.08, duration:0.3, ease:[0.16,1,0.3,1] }}
           style={{ display:'flex', alignItems:'center', gap:8, marginBottom:'1.25rem', flexWrap:'wrap' }}>
 
+          {/* Search */}
           <div style={{ position:'relative', flex:1, minWidth:140 }}>
             <span style={{ position:'absolute', left:9, top:'50%', transform:'translateY(-50%)', color:'var(--color-text-muted)', display:'flex', pointerEvents:'none' }}><SearchIcon /></span>
             <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search rooms…"
@@ -257,6 +318,7 @@ export default function HomePage() {
             />
           </div>
 
+          {/* Lang filters */}
           {!isMobile && (
             <div style={{ display:'flex', gap:4, flexWrap:'wrap' }}>
               {allLangs.slice(0,5).map(lang => (
@@ -268,6 +330,7 @@ export default function HomePage() {
             </div>
           )}
 
+          {/* View toggle */}
           <div style={{ display:'flex', background:'var(--color-surface)', border:'1px solid var(--color-border)', borderRadius:'var(--radius-sm)', padding:2, gap:2 }}>
             {(['grid','list'] as const).map(v => (
               <motion.button key={v} onClick={() => setView(v)} whileTap={{ scale:0.9 }}
@@ -277,7 +340,8 @@ export default function HomePage() {
             ))}
           </div>
 
-          <motion.button onClick={() => setShowModal(true)} whileHover={{ boxShadow:'0 0 16px var(--color-accent-glow)' }} whileTap={{ scale:0.97 }}
+          {/* New room CTA */}
+          <motion.button onClick={openCreateRoom} whileHover={{ boxShadow:'0 0 16px var(--color-accent-glow)' }} whileTap={{ scale:0.97 }}
             style={{ fontFamily:'var(--font-ui)', fontSize:'0.8125rem', fontWeight:500, background:'var(--color-accent)', color:'#fff', border:'none', borderRadius:'var(--radius-sm)', padding:'0.45rem 1rem', cursor:'pointer', display:'flex', alignItems:'center', gap:6, whiteSpace:'nowrap', flexShrink:0 }}>
             <PlusIcon />{isMobile ? 'New' : 'New room'}
           </motion.button>
@@ -289,21 +353,33 @@ export default function HomePage() {
             No rooms match <strong style={{ color:'var(--color-text-secondary)', fontFamily:'var(--font-ui)' }}>"{search}"</strong>
           </motion.div>
         ) : filtered.length === 0 ? (
-          <EmptyState onCreateRoom={() => setShowModal(true)} />
+          <EmptyState onCreateRoom={openCreateRoom} />
         ) : (
           <motion.div layout style={{ display:'grid', gridTemplateColumns:view==='grid'?(isMobile?'1fr':'repeat(auto-fill, minmax(240px, 1fr))'):'1fr', gap:view==='grid'?'0.75rem':'0.45rem' }}>
             <AnimatePresence mode="popLayout">
               {filtered.map((room, i) => (
-                <RoomCard key={room.id} room={room} index={i} view={view} onClick={() => navigate(`/room/${room.id}`)} />
+                <RoomCard
+                  key={room.id} room={room} index={i} view={view}
+                  onClick={() => navigate(`/room/${room.id}`)}
+                />
               ))}
             </AnimatePresence>
           </motion.div>
         )}
       </main>
 
-      {/* Modal using Modal component */}
-      <Modal open={showModal} onClose={() => setShowModal(false)} title="New room" description="Create a shared space to write code together" size="md">
-        <CreateRoomBody onClose={() => setShowModal(false)} onCreate={handleCreate} />
+      {/* Create room modal */}
+      <Modal
+        open={createRoomOpen}
+        onClose={closeCreateRoom}
+        title="New room"
+        description="Create a shared space to write code together"
+        size="md"
+      >
+        <CreateRoomBody
+          onClose={closeCreateRoom}
+          onCreate={handleCreate}
+        />
       </Modal>
     </div>
   )

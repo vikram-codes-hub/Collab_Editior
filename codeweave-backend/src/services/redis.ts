@@ -18,10 +18,8 @@ if (!REDIS_URL) {
 }
 
 const redisOptions = {
-  // RedisLabs cloud requires TLS
-  tls: {
-    rejectUnauthorized: false,
-  },
+  // Only use TLS if the URL explicitly requires it
+  tls: REDIS_URL.startsWith('rediss://') ? { rejectUnauthorized: false } : undefined,
 
   // Retry up to 10 times with exponential backoff
   retryStrategy: (times: number) => {

@@ -111,6 +111,13 @@ export interface RoomJoinPayload {
   username: string
 }
 
+export interface UserJoinedPayload {
+  socketId: string
+  userId:   string
+  username: string
+  color:    string
+}
+
 export interface CursorMovePayload {
   roomId:   string
   userId:   string

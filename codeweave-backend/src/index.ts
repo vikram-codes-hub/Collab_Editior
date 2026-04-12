@@ -20,29 +20,38 @@ import executionRoutes from './routes/execution'
 
 dotenv.config()
 
-/* ── App + HTTP server ────────────────────────────────────── */
 const app    = express()
 const server = http.createServer(app)
+
+/* ✅ Allowed Origins */
+const allowedOrigins = [
+  'http://localhost:3000',
+  'http://localhost:5173'
+]
 
 /* ── Socket.io ────────────────────────────────────────────── */
 const io = new Server(server, {
   cors: {
-    origin:      process.env.CLIENT_URL || 'http://localhost:3000',
+    origin: allowedOrigins,
     credentials: true,
   },
-  // How long to wait before considering connection dead
-  pingTimeout:  60_000,
-  pingInterval: 25_000,
+  pingTimeout:  60000,
+  pingInterval: 25000,
 })
 
 /* ── Express middleware ───────────────────────────────────── */
 app.use(helmet({
-  // Allow WebSocket upgrades
   contentSecurityPolicy: false,
 }))
 
 app.use(cors({
-  origin:      process.env.CLIENT_URL || 'http://localhost:3000',
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true)
+    } else {
+      callback(new Error('Not allowed by CORS'))
+    }
+  },
   credentials: true,
 }))
 
@@ -77,7 +86,6 @@ app.use((_req, res) => {
 })
 
 /* ── Global error handler ─────────────────────────────────── */
-// Must be last
 app.use(errorHandler)
 
 /* ── Socket.io handlers ───────────────────────────────────── */
@@ -89,19 +97,15 @@ const YJS_PORT = parseInt(process.env.YJS_PORT || '1234', 10)
 
 const start = async () => {
   try {
-    // 1. Connect to PostgreSQL
     await connectDB()
     console.log('✅ PostgreSQL connected')
 
-    // 2. Verify Redis connection
     await redis.ping()
     console.log('✅ Redis connected')
 
-    // 3. Start Yjs WebSocket server
     startYjsServer(YJS_PORT)
     console.log(`✅ Yjs server on ws://localhost:${YJS_PORT}`)
 
-    // 4. Start HTTP + Socket.io server
     server.listen(PORT, () => {
       console.log('')
       console.log('🚀 Depot backend running')
@@ -135,7 +139,6 @@ const shutdown = async (signal: string) => {
 process.on('SIGTERM', () => shutdown('SIGTERM'))
 process.on('SIGINT',  () => shutdown('SIGINT'))
 
-// Catch unhandled errors so server doesn't crash
 process.on('unhandledRejection', (err) => {
   console.error('❌ Unhandled rejection:', err)
 })
