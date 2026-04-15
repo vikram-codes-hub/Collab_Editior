@@ -1,5 +1,14 @@
 # ⚡ CollabEdit — Real-Time Collaborative Code Editor
 
+<div align="center">
+  <img src="https://img.shields.io/badge/React-18-blue?style=for-the-badge&logo=react&logoColor=white" />
+  <img src="https://img.shields.io/badge/TypeScript-5-blue?style=for-the-badge&logo=typescript&logoColor=white" />
+  <img src="https://img.shields.io/badge/Node.js-20-green?style=for-the-badge&logo=nodedotjs&logoColor=white" />
+  <img src="https://img.shields.io/badge/Socket.IO-black?style=for-the-badge&logo=socketdotio&logoColor=white" />
+  <img src="https://img.shields.io/badge/PostgreSQL-336791?style=for-the-badge&logo=postgresql&logoColor=white" />
+  <img src="https://img.shields.io/badge/Redis-DC382D?style=for-the-badge&logo=redis&logoColor=white" />
+</div>
+
 > A full-stack collaborative coding environment powered by CRDTs, WebSockets, and the VS Code editor engine.
 
 🔗 **Live Demo:** _Coming soon_
@@ -16,13 +25,86 @@ Built with **Yjs CRDTs** for conflict-free merging, **Monaco Editor** for a VS C
 
 ## 🏗️ System Architecture
 
-![System Architecture](./Image_Resources/system_architecture.svg)
+```mermaid
+flowchart LR
+    %% Styles
+    classDef client fill:#1E293B,stroke:#38BDF8,stroke-width:2px,color:#fff,rx:8,ry:8
+    classDef server fill:#1E293B,stroke:#A78BFA,stroke-width:2px,color:#fff,rx:8,ry:8
+    classDef db fill:#0F172A,stroke:#F472B6,stroke-width:2px,color:#fff,rx:8,ry:8
+    classDef component fill:#334155,stroke:#475569,stroke-width:1px,color:#E2E8F0,rx:5,ry:5
+
+    subgraph Clients["💻 Web Clients"]
+        direction TB
+        subgraph UA ["User A"]
+            direction LR
+            ReactA([React + Monaco]):::component <--> YjsA[[Yjs Doc]]:::component
+        end
+        subgraph UB ["User B"]
+            direction LR
+            ReactB([React + Monaco]):::component <--> YjsB[[Yjs Doc]]:::component
+        end
+    end
+
+    subgraph Backend["🚀 Backend Infrastructure"]
+        direction TB
+        WS{"WebSocket Server<br/>(Socket.io / y-websocket)"}:::component
+        API["Express API<br/>(Auth, Rooms)"]:::component
+        Redis[("Redis<br/>(Pub/Sub)")]:::component
+        
+        WS <--> Redis
+    end
+
+    subgraph Persistence["🗄️ Database"]
+        direction TB
+        PG[("PostgreSQL<br/>(Snapshots, Users)")]:::component
+    end
+
+    %% Flow
+    YjsA <==>|CRDT Updates| WS
+    YjsB <==>|CRDT Updates| WS
+    
+    UA -->|REST Requests| API
+    UB -->|REST Requests| API
+    
+    API -->|Read/Write| PG
+    WS -.->|Periodic Save| PG
+
+    class Clients client
+    class Backend server
+    class Persistence db
+```
 
 ---
 
 ## 🗺️ How It Works
 
-![How It Works](./Image_Resources/how_it_works.svg)
+```mermaid
+sequenceDiagram
+    autonumber
+    
+    actor UA as 🧑‍💻 User A
+    participant YjA as 🧠 Yjs (A)
+    participant WS as 🌐 WebSocket Server
+    participant YjB as 🧠 Yjs (B)
+    actor UB as 🧑‍💻 User B
+
+    Note over UA,UB: Users are in the same Collaborative Room
+
+    UA->>YjA: Types `const hello = "world";` in Editor
+    activate YjA
+    YjA->>YjA: Encode Change (CRDT Uint8Array)
+    YjA->>WS: Broadcast Binary Update
+    deactivate YjA
+
+    WS->>YjB: Forward Update to peers in room
+    
+    activate YjB
+    YjB->>YjB: Apply Update & Merge (Conflict-free)
+    YjB->>UB: Update Editor Screen Magically ✨
+    deactivate YjB
+
+    Note left of WS: Server optionally saves a binary<br/>snapshot to the database
+```
 
 ---
 

@@ -6,10 +6,10 @@ import { AppError } from '../middleware/error'
 */
 
 export interface Snapshot {
-  id:       string
-  room_id:  string
-  content:  Buffer
-  saved_at: Date
+  id:         string
+  room_id:    string
+  data:       Buffer
+  updated_at: Date
 }
 
 /*Save or update snapshot*/
@@ -19,12 +19,12 @@ export const saveSnapshot = async (
   content: Buffer
 ): Promise<void> => {
   await pool.query(
-    `INSERT INTO snapshots (room_id, content)
+    `INSERT INTO snapshots (room_id, data)
      VALUES ($1, $2)
      ON CONFLICT (room_id)
      DO UPDATE SET
-       content  = EXCLUDED.content,
-       saved_at = NOW()`,
+       data       = EXCLUDED.data,
+       updated_at = NOW()`,
     [roomId, content]
   )
 }
@@ -68,7 +68,7 @@ export const getSnapshotSize = async (
   roomId: string
 ): Promise<number> => {
   const { rows } = await pool.query(
-    `SELECT octet_length(content) AS size
+    `SELECT octet_length(data) AS size
      FROM snapshots
      WHERE room_id = $1`,
     [roomId]

@@ -338,11 +338,10 @@ export default function EditorPage() {
         {/* ── Notes panel ── */}
         {!isMobile && !isTablet && (
           <div style={{ gridArea: 'notepad', background: 'var(--color-surface)', overflow: 'hidden' }}>
-            <Sidebar title="Notes" badge={yjsConnected ? 'synced' : 'connecting'} badgeOk={yjsConnected}>
+            <Sidebar title="Notes" badge="private" badgeOk={true}>
               <Notepad
                 value={note}
                 onChange={setNote}
-                activeUsers={noteActiveUsers}
               />
             </Sidebar>
           </div>
@@ -428,8 +427,8 @@ export default function EditorPage() {
                 zIndex: 61, display: 'flex', flexDirection: 'column', overflow: 'hidden',
               }}
             >
-              <Sidebar title="Notes" badge={yjsConnected ? 'synced' : 'connecting'} badgeOk={yjsConnected}>
-                <Notepad value={note} onChange={setNote} activeUsers={noteActiveUsers} />
+              <Sidebar title="Notes" badge="private" badgeOk={true}>
+                <Notepad value={note} onChange={setNote} />
               </Sidebar>
             </motion.div>
           </>

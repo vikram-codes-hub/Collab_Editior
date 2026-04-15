@@ -10,7 +10,7 @@ import LoadingScreen from '../components/loadingscreen'
 import useAuthStore  from '../store/authstore'
 import useRoomStore  from '../store/roomstore'
 import useUIStore    from '../store/uiStore'
-import { Room }      from '../types'
+import type { Room } from '../types'
 
 const LANGUAGES = ['JavaScript','TypeScript','Python','Go','Rust','Java','C++','HTML','CSS','Shell','Markdown']
 

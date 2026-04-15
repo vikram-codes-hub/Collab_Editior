@@ -11,7 +11,7 @@ import {
 
 const router = Router()
 
-/* ── Validation schemas ───────────────────────────────────── */
+/*Validation schemas*/
 const registerSchema = Joi.object({
   email:    Joi.string().email().required(),
   username: Joi.string().min(2).max(30).required(),

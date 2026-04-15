@@ -3,7 +3,7 @@ import dotenv from 'dotenv'
 
 dotenv.config()
 
-// ── ioredis client using REDIS_URL from .env ───────────────
+//ioredis client using REDIS_URL from .env
 export const redis = new Redis(process.env.REDIS_URL!, {
   // RedisLabs requires TLS on cloud instances
   tls: process.env.NODE_ENV === 'production' ? {} : undefined,
@@ -19,7 +19,7 @@ export const redis = new Redis(process.env.REDIS_URL!, {
   connectTimeout: 10_000,
 })
 
-// ── Pub/sub needs a separate connection ───────────────────
+//Pub/sub needs a separate connection
 // (ioredis clients in subscribe mode can't send other commands)
 export const redisSub = new Redis(process.env.REDIS_URL!, {
   tls: process.env.NODE_ENV === 'production' ? {} : undefined,
@@ -35,12 +35,12 @@ redis.on('error',   (err) => console.error('❌ Redis error:', err))
 redisSub.on('connect', () => console.log('✅ Redis sub connected'))
 redisSub.on('error',   (err) => console.error('❌ Redis sub error:', err))
 
-// ── Helper: publish to a channel ──────────────────────────
+//Helper: publish to a channel
 export const publish = async (channel: string, data: object) => {
   await redis.publish(channel, JSON.stringify(data))
 }
 
-// ── Helper: subscribe to a channel ────────────────────────
+//Helper: subscribe to a channel
 export const subscribe = (
   channel: string,
   handler: (data: object) => void

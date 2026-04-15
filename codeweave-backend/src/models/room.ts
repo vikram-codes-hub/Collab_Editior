@@ -1,9 +1,7 @@
 import { pool } from "../db/postgres";
 import { AppError } from "../middleware/error";
 
-/* ============================================================
-   Room Model — all DB queries for rooms table
-   ============================================================ */
+/*Room Model — all DB queries for rooms table*/
 
 export interface Room {
   id: string;
