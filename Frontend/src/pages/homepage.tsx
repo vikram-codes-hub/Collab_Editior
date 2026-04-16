@@ -14,7 +14,7 @@ import type { Room } from '../types'
 
 const LANGUAGES = ['JavaScript','TypeScript','Python','Go','Rust','Java','C++','HTML','CSS','Shell','Markdown']
 
-/* ── Icons ────────────────────────────────────────────────── */
+/* Icons */
 const PlusIcon    = () => <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 2v10M2 7h10" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/></svg>
 const SearchIcon  = () => <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><circle cx="5.5" cy="5.5" r="4" stroke="currentColor" strokeWidth="1.3"/><path d="M9 9l2.5 2.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/></svg>
 const ClockIcon   = () => <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><circle cx="5.5" cy="5.5" r="4.5" stroke="currentColor" strokeWidth="1.1"/><path d="M5.5 3v2.5l1.5 1.5" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round"/></svg>
@@ -25,7 +25,7 @@ const ArrowRight  = () => <svg width="13" height="13" viewBox="0 0 13 13" fill="
 const SpinnerIcon = () => <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style={{ animation: 'spin 0.7s linear infinite' }}><circle cx="7" cy="7" r="5.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeDasharray="28" strokeDashoffset="10" opacity="0.8"/></svg>
 const LogoutIcon  = () => <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M5 2H3a1 1 0 00-1 1v7a1 1 0 001 1h2M9 9.5l3-3-3-3M12 6.5H5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/></svg>
 
-/* ── Room card ────────────────────────────────────────────── */
+/*Room card*/
 function RoomCard({ room, index, view, onClick }: {
   room: Room; index: number; view: 'grid'|'list'; onClick: () => void
 }) {
@@ -106,7 +106,7 @@ function RoomCard({ room, index, view, onClick }: {
   )
 }
 
-/* ── Create room body ─────────────────────────────────────── */
+/*Create room body */
 function CreateRoomBody({ onClose, onCreate }: {
   onClose: () => void
   onCreate: (n: string, l: string) => Promise<void>
@@ -175,7 +175,7 @@ function CreateRoomBody({ onClose, onCreate }: {
   )
 }
 
-/* ── Empty state ──────────────────────────────────────────── */
+/* Empty state */
 function EmptyState({ onCreateRoom }: { onCreateRoom: () => void }) {
   return (
     <motion.div initial={{ opacity:0, y:12 }} animate={{ opacity:1, y:0 }} transition={{ duration:0.4, ease:[0.16,1,0.3,1] }}
@@ -193,7 +193,7 @@ function EmptyState({ onCreateRoom }: { onCreateRoom: () => void }) {
   )
 }
 
-/* ── HomePage ─────────────────────────────────────────────── */
+/* HomePage */
 export default function HomePage() {
   const navigate   = useNavigate()
 

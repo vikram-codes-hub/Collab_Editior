@@ -160,7 +160,7 @@ function Topbar({
   )
 }
 
-/* ── Status bar ───────────────────────────────────────────── */
+/*Status bar */
 function StatusBar({
   roomName, language, lineCount, cursorPos, isMobile, onlineCount, yjsConnected,
 }: {

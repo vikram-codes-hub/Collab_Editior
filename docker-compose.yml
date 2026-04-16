@@ -1,13 +1,7 @@
-# ─────────────────────────────────────────
-#  Depot — docker-compose.yml
-#  Services: frontend · backend · postgres · redis
-# ─────────────────────────────────────────
-
 version: '3.9'
 
 services:
 
-  # ── Frontend (React + nginx) ───────────
   frontend:
     build:
       context: ./frontend
@@ -21,15 +15,14 @@ services:
       - depot-network
     restart: unless-stopped
 
-  # ── Backend (Node.js + Express) ────────
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
     container_name: depot-backend
     ports:
-      - '4000:4000'   # HTTP + Socket.io
-      - '1234:1234'   # Yjs WebSocket
+      - '4000:4000'
+      - '1234:1234'
     env_file:
       - ./backend/.env
     environment:
@@ -45,7 +38,6 @@ services:
       - depot-network
     restart: unless-stopped
 
-  # ── PostgreSQL ─────────────────────────
   postgres:
     image: postgres:16-alpine
     container_name: depot-postgres
@@ -67,7 +59,6 @@ services:
       - depot-network
     restart: unless-stopped
 
-  # ── Redis ──────────────────────────────
   redis:
     image: redis:7-alpine
     container_name: depot-redis
@@ -84,12 +75,22 @@ services:
       - depot-network
     restart: unless-stopped
 
-# ── Volumes ────────────────────────────────
+  piston:
+    image: ghcr.io/engineer-man/piston
+    container_name: piston
+    ports:
+      - "2000:2000"
+    privileged: true
+    tmpfs:
+      - /piston/jobs
+    networks:
+      - depot-network
+    restart: unless-stopped
+
 volumes:
   postgres-data:
   redis-data:
 
-# ── Network ────────────────────────────────
 networks:
   depot-network:
     driver: bridge

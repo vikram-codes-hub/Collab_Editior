@@ -141,7 +141,7 @@ const injectCursorStyle = (userId: string, color: string) => {
   document.head.appendChild(style)
 }
 
-// ── Editor component ──────────────────────────────────────────────────────────
+// Editor component
 const Editor = ({
   value = '',
   onChange,
@@ -153,9 +153,9 @@ const Editor = ({
   const containerRef  = useRef<HTMLDivElement>(null)
   const editorRef     = useRef<monaco.editor.IStandaloneCodeEditor | null>(null)
   const decorationsRef = useRef<string[]>([])
-  const suppressRef   = useRef(false) // prevent onChange echo on external value set
+  const suppressRef   = useRef(false) 
 
-  // ── Mount ──────────────────────────────────────────────────────────────────
+  //Mount
   useEffect(() => {
     if (!containerRef.current) return
     ensureTheme()

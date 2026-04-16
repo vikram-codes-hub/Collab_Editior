@@ -23,6 +23,29 @@ CREATE TABLE IF NOT EXISTS rooms (
 
 CREATE INDEX IF NOT EXISTS idx_rooms_created_by ON rooms(created_by);
 
+-- ── Migrations: room_members ─────────────────────────────────
+-- Rename legacy "userid" → "user_id" BEFORE CREATE TABLE / INDEX
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'room_members' AND column_name = 'userid'
+  ) THEN
+    ALTER TABLE room_members RENAME COLUMN userid TO user_id;
+  END IF;
+END $$;
+
+-- Drop legacy index on old column name if it exists
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM pg_indexes
+    WHERE tablename = 'room_members' AND indexname = 'idx_room_members_user'
+  ) THEN
+    DROP INDEX idx_room_members_user;
+  END IF;
+END $$;
+
 -- ── Room Members ────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS room_members (
   room_id   UUID REFERENCES rooms(id) ON DELETE CASCADE,
@@ -33,16 +56,7 @@ CREATE TABLE IF NOT EXISTS room_members (
 
 CREATE INDEX IF NOT EXISTS idx_room_members_user ON room_members(user_id);
 
--- ── Document Snapshots ──────────────────────────────────────
--- Stores Yjs binary (BYTEA). Column is named "data".
-CREATE TABLE IF NOT EXISTS snapshots (
-  id         UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  room_id    UUID UNIQUE REFERENCES rooms(id) ON DELETE CASCADE,
-  data       BYTEA NOT NULL,
-  updated_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Fix column name if table was created with "content" instead of "data"
+-- ── Migrations: snapshots ────────────────────────────────────
 DO $$
 BEGIN
   IF EXISTS (
@@ -53,7 +67,6 @@ BEGIN
   END IF;
 END $$;
 
--- Fix column name if table was created with "saved_at" instead of "updated_at"
 DO $$
 BEGIN
   IF EXISTS (
@@ -64,11 +77,28 @@ BEGIN
   END IF;
 END $$;
 
+-- ── Document Snapshots ──────────────────────────────────────
+CREATE TABLE IF NOT EXISTS snapshots (
+  id         UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  room_id    UUID UNIQUE REFERENCES rooms(id) ON DELETE CASCADE,
+  data       BYTEA NOT NULL,
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 CREATE INDEX IF NOT EXISTS idx_snapshots_room ON snapshots(room_id);
 
+-- ── Migrations: notes ────────────────────────────────────────
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'notes' AND column_name = 'userid'
+  ) THEN
+    ALTER TABLE notes RENAME COLUMN userid TO user_id;
+  END IF;
+END $$;
+
 -- ── Notes (private per user per room) ───────────────────────
--- Each user has their own private notepad in each room.
--- Other users cannot see or know who wrote what.
 CREATE TABLE IF NOT EXISTS notes (
   room_id    UUID REFERENCES rooms(id) ON DELETE CASCADE,
   user_id    UUID REFERENCES users(id) ON DELETE CASCADE,

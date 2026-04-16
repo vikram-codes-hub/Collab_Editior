@@ -10,7 +10,7 @@ let socket: Socket | null = null
 
 /*Get or create socket instance*/
 export const getSocket = (): Socket => {
-  if (socket?.connected) return socket
+  if (socket) return socket
 
   socket = io(WS_URL, {
     auth: {
