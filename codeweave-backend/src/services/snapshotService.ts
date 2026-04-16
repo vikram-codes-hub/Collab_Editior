@@ -19,7 +19,6 @@ export const saveSnapshot = async (
   await dbSave(roomId, content)
 }
 
-/*Load snapshot and apply to Yjs doc*/
 export const loadSnapshot = async (
   roomId: string,
   doc:    Y.Doc
@@ -27,13 +26,15 @@ export const loadSnapshot = async (
   const snapshot = await dbGet(roomId)
   if (!snapshot) return false
 
-  Y.applyUpdate(doc, snapshot.content)
-  return true
-}
+  const update = new Uint8Array(snapshot.content)
+  if (update.length === 0) return false
 
-/*Delete snapshot*/
-export const deleteRoomSnapshot = async (
-  roomId: string
-): Promise<void> => {
-  await dbDelete(roomId)
+  try {
+    Y.applyUpdate(doc, update)
+    return true
+  } catch (err) {
+    console.warn(`⚠️ Corrupt snapshot for ${roomId}, deleting:`, err)
+    await dbDelete(roomId)  // ← nuke bad snapshot so getDoc doesn't re-crash
+    return false
+  }
 }

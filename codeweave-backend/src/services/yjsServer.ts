@@ -4,38 +4,35 @@ import * as Y from 'yjs'
 import { saveSnapshot, loadSnapshot } from './snapshotService'
 import { SNAPSHOT_INTERVAL_MS } from '../constant'
 
-// ── In-memory doc store ────────────────────────────────────
-// roomId → Y.Doc
-const docs = new Map<string, Y.Doc>()
+const docs      = new Map<string, Y.Doc>()
+const intervals = new Map<string, NodeJS.Timeout>() // ✅ track intervals
 
-// ── Get or create a Y.Doc for a room ──────────────────────
 export const getDoc = async (roomId: string): Promise<Y.Doc> => {
   if (docs.has(roomId)) return docs.get(roomId)!
 
   const doc = new Y.Doc()
   docs.set(roomId, doc)
 
-  // Load persisted snapshot from PostgreSQL
   const found = await loadSnapshot(roomId, doc)
-  if (found) {
-    console.log(`📄 Loaded snapshot for room: ${roomId}`)
-  } else {
-    console.log(`🆕 New room, no snapshot: ${roomId}`)
+  console.log(found ? `📄 Loaded snapshot for room: ${roomId}` : `🆕 New room: ${roomId}`)
+
+  // ✅ Only start interval if not already running
+  if (!intervals.has(roomId)) {
+    const interval = setInterval(async () => {
+      try {
+        await saveSnapshot(roomId, doc)
+        console.log(`💾 Auto-saved: ${roomId}`)
+      } catch (err) {
+        console.error(`❌ Snapshot save failed for ${roomId}:`, err)
+      }
+    }, SNAPSHOT_INTERVAL_MS)
+
+    intervals.set(roomId, interval)
   }
 
-  // Auto-save snapshot every 30s
-  const interval = setInterval(async () => {
-    try {
-      await saveSnapshot(roomId, doc)
-      console.log(`💾 Auto-saved snapshot for room: ${roomId}`)
-    } catch (err) {
-      console.error(`❌ Snapshot save failed for room ${roomId}:`, err)
-    }
-  }, SNAPSHOT_INTERVAL_MS)
-
-  // Clean up when doc is destroyed
   doc.on('destroy', () => {
-    clearInterval(interval)
+    clearInterval(intervals.get(roomId))
+    intervals.delete(roomId)
     docs.delete(roomId)
   })
 
