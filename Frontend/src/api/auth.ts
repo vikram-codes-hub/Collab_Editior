@@ -1,9 +1,7 @@
 import api from '../lib/axios'
 import type { AuthResponse, LoginInput, RegisterInput } from '../types'
 
-/* ============================================================
-   Auth API calls
-   ============================================================ */
+
 
 export const loginApi = async (
   input: LoginInput

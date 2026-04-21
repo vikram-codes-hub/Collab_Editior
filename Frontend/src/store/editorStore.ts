@@ -111,6 +111,35 @@ const useEditorStore = create<EditorState>()(
     }),
     {
       name: 'depot-editor',
+      version: 2,
+      // Migrate old persisted data to new format
+      migrate: (persisted: any, fromVersion: number) => {
+        if (fromVersion < 2) {
+          // Normalize lowercase language keys to display names
+          const LANG_DISPLAY: Record<string, string> = {
+            typescript: 'TypeScript',
+            javascript: 'JavaScript',
+            python:     'Python',
+            go:         'Go',
+            rust:       'Rust',
+            cpp:        'C++',
+            'c++':      'C++',
+            java:       'Java',
+            css:        'CSS',
+            html:       'HTML',
+            json:       'JSON',
+            markdown:   'Markdown',
+            shell:      'Shell',
+            bash:       'Shell',
+          }
+          const lang = persisted?.language ?? ''
+          return {
+            ...persisted,
+            language: LANG_DISPLAY[lang.toLowerCase()] ?? 'TypeScript',
+          }
+        }
+        return persisted
+      },
       // Only persist settings, not code or terminal
       partialize: (state) => ({
         language: state.language,

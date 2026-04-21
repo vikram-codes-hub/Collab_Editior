@@ -26,7 +26,7 @@ export const USER_KEY     = 'depot_user'
 export const TOKEN_EXPIRY = 7 * 24 * 60 * 60 * 1000  // 7 days in ms
 
 /*Editor*/
-export const DEFAULT_LANGUAGE = 'typescript'
+export const DEFAULT_LANGUAGE = 'TypeScript'
 export const DEFAULT_THEME    = 'vs-dark'
 export const DEFAULT_FONT     = 14
 

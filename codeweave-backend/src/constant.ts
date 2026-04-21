@@ -1,4 +1,5 @@
-export const PISTON_API = 'http://localhost:2000/api/v2/piston'
+export const PISTON_API = 'http://localhost:2000/api/v2'
+export const MAX_CODE_SIZE = 50_000
 
 export const LANG_RUNTIME: Record<string, { language: string; version: string }> = {
   javascript: { language: 'javascript', version: '*' },

@@ -68,33 +68,7 @@ export default function Navbar({
           transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
           style={{ display: 'flex', alignItems: 'center', gap: 7, flexShrink: 0 }}
         >
-          {/* Logo mark */}
-          <div style={{
-            width:          26,
-            height:         26,
-            borderRadius:   7,
-            background:     'var(--color-accent)',
-            display:        'flex',
-            alignItems:     'center',
-            justifyContent: 'center',
-            boxShadow:      '0 0 12px var(--color-accent-glow)',
-            flexShrink:     0,
-          }}>
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-              <path d="M2 4h4M2 7h10M2 10h7" stroke="#fff" strokeWidth="1.6" strokeLinecap="round"/>
-            </svg>
-          </div>
-
-          {/* Brand name — Syne */}
-          <span style={{
-            fontFamily:    'var(--font-heading)',  /* Syne */
-            fontSize:      15,
-            fontWeight:    700,
-            color:         'var(--color-text-primary)',
-            letterSpacing: '-0.03em',
-          }}>
-            Depot
-          </span>
+          <img src="/logo.png" alt="Depot" style={{ height: 40, width: 'auto', flexShrink: 0 }} />
         </motion.div>
 
         {/* Separator */}

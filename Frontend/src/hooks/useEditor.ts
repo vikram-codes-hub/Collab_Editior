@@ -66,7 +66,7 @@ export const useEditor = (roomId: string) => {
     socket.emit('terminal:run', {
       roomId,
       code,
-      language,
+      language: language.toLowerCase(), // normalize to match LANG_RUNTIME keys
       userId:   user.id,
       username: user.username,
     })

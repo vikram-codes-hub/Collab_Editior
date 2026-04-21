@@ -1,4 +1,4 @@
-# ⚡ CollabEdit — Real-Time Collaborative Code Editor
+# ⚡ Depot — Real-Time Collaborative Code Editor
 
 <div align="center">
   <img src="https://img.shields.io/badge/React-18-blue?style=for-the-badge&logo=react&logoColor=white" />
@@ -17,7 +17,7 @@
 
 ## 🧠 What Is This?
 
-CollabEdit lets multiple developers edit the same file simultaneously — changes merge instantly, cursors are visible in real-time, and nothing is ever lost. Think Google Docs, but for code.
+Depot lets multiple developers edit the same file simultaneously — changes merge instantly, cursors are visible in real-time, and nothing is ever lost. Think Google Docs, but for code.
 
 Built with **Yjs CRDTs** for conflict-free merging, **Monaco Editor** for a VS Code-grade experience, and **Socket.io** for live presence and cursor tracking.
 
@@ -146,7 +146,7 @@ sequenceDiagram
 ## 📁 Project Structure
 
 ```
-collab-editor/
+depot/
 ├── client/                     # React frontend
 │   ├── src/
 │   │   ├── components/         # UI components
@@ -217,8 +217,8 @@ collab-editor/
 
 ```bash
 # Clone the repo
-git clone https://github.com/your-username/collab-editor.git
-cd collab-editor
+git clone https://github.com/your-username/depot.git
+cd depot
 
 # Copy and fill in your env vars
 cp .env.example .env
@@ -257,7 +257,7 @@ PORT=3000
 NODE_ENV=development
 
 # Database
-DATABASE_URL=postgresql://user:password@localhost:5432/collab_editor
+DATABASE_URL=postgresql://user:password@localhost:5432/depot
 
 # Redis
 REDIS_URL=redis://localhost:6379

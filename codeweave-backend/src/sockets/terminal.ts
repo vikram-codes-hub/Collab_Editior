@@ -23,7 +23,9 @@ export const registerTerminalHandlers = (io: Server, socket: Socket) => {
     userId:   string
     username: string
   }) => {
-    const { roomId, code, language, userId, username } = data
+    const { roomId, code, language: rawLang, userId, username } = data
+    const language = rawLang.toLowerCase() // normalize for LANG_RUNTIME lookup
+    const displayLang = language.charAt(0).toUpperCase() + language.slice(1)
 
     // Don't allow two runs at once in same room
     if (runningRooms.has(roomId)) {
@@ -38,7 +40,7 @@ export const registerTerminalHandlers = (io: Server, socket: Socket) => {
     // Broadcast to everyone in room that execution started
     io.to(roomId).emit('terminal:output', {
       type:      'cmd',
-      text:      `▶ ${username} ran ${language}`,
+      text:      `▶ ${username} ran ${displayLang}`,
       timestamp: Date.now(),
     })
 

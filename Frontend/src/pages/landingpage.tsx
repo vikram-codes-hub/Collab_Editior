@@ -174,8 +174,7 @@ export default function LandingPage() {
         initial={{ opacity:0, y:-8 }} animate={{ opacity:1, y:0 }} transition={{ duration:0.4, ease:[0.16,1,0.3,1] }}
         style={{ position:'sticky', top:0, zIndex:50, display:'flex', alignItems:'center', padding:'0 clamp(1rem,5vw,3rem)', height:56, borderBottom:'1px solid var(--color-border)', background:'rgba(13,13,16,0.85)', backdropFilter:'blur(12px)', gap:isMobile?12:24 }}
       >
-        {/* font: Syne */}
-        <span style={{ fontFamily:'var(--font-heading)', fontSize:'1.1rem', fontWeight:800, color:'var(--color-text-primary)', letterSpacing:'-0.03em', cursor:'pointer' }}>depot</span>
+        <img src="/logo.png" alt="Depot" style={{ height: 40, width: 'auto', cursor:'pointer' }} onClick={() => navigate('/')} />
         <div style={{ flex:1 }}/>
         {!isMobile && ['Features','Pricing','Docs'].map(link => (
           <motion.span key={link} whileHover={{ color:'var(--color-text-primary)' }}
@@ -295,8 +294,7 @@ export default function LandingPage() {
 
       {/* Footer */}
       <footer style={{ position:'relative', zIndex:1, display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:12, padding:'clamp(1.5rem,4vh,2.5rem) clamp(1rem,5vw,3rem)', borderTop:'1px solid var(--color-border)', marginTop:'3rem' }}>
-        {/* font: Syne */}
-        <span style={{ fontFamily:'var(--font-heading)', fontSize:'1rem', fontWeight:800, color:'var(--color-text-primary)', letterSpacing:'-0.03em' }}>depot</span>
+        <img src="/logo.png" alt="Depot" style={{ height: 36, width: 'auto' }} />
         {/* font: Manrope */}
         <span style={{ fontFamily:'var(--font-body)', fontSize:'0.775rem', color:'var(--color-text-hint)' }}>built for developers who ship together</span>
         <div style={{ display:'flex', gap:16 }}>

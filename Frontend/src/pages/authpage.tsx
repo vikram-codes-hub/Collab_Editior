@@ -353,16 +353,7 @@ export default function AuthPage() {
         transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
         style={{ marginBottom: '2rem', textAlign: 'center', position: 'relative', zIndex: 1 }}
       >
-        {/* font: Syne — brand logo */}
-        <span style={{
-          fontFamily:  'var(--font-heading)',
-          fontSize:    '1.75rem',
-          fontWeight:  800,
-          color:       'var(--color-text-primary)',
-          letterSpacing: '-0.03em',
-        }}>
-          Depot
-        </span>
+        <img src="/logo.png" alt="Depot" style={{ height: 100, width: 'auto', display: 'block', margin: '0 auto' }} />
         <div style={{
           width:     32,
           height:    2,
@@ -766,7 +757,10 @@ export default function AuthPage() {
           zIndex:     1,
         }}
       >
-        Depot · built for developers who ship together
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+          <img src="/logo.png" alt="Depot" style={{ height: 30, width: 'auto' }} />
+          <span>· built for developers who ship together</span>
+        </div>
       </motion.p>
     </div>
   )

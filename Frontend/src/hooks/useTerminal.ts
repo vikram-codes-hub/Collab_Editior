@@ -22,8 +22,10 @@ export const useTerminal = (roomId: string) => {
   useEffect(() => {
     if (!roomId) return
 
-    // Output line received
+    // Output line received — if it's the 'cmd' line (execution started),
+    // set isRunning=true on ALL clients so everyone sees the running badge
     socket.on('terminal:output', (line: TerminalLine) => {
+      if (line.type === 'cmd') setIsRunning(true)
       addTerminalLine(line)
     })
 

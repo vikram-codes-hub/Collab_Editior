@@ -113,6 +113,14 @@ export const registerCursorHandlers = (io: Server, socket: Socket) => {
     })
   })
 
+  // ── room:rename ─────────────────────────────────────────
+  // Owner renamed the room — broadcast new name to all members
+  socket.on('room:rename', (data: { roomId: string; name: string }) => {
+    const { roomId, name } = data
+    socket.to(roomId).emit('room:renamed', { name })
+    console.log(`✏️  Room ${roomId} renamed to: ${name}`)
+  })
+
   // ── disconnect ──────────────────────────────────────────
   socket.on('disconnect', async () => {
     const roomId = socket.data.roomId

@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useParams, useNavigate } from 'react-router-dom'
 
@@ -22,6 +22,8 @@ import { useTerminal }      from '../hooks/useTerminal'
 import { useCollaboration } from '../hooks/useCollaboration'
 import useAuthStore         from '../store/authstore'
 import useUIStore           from '../store/uiStore'
+import useRoomStore         from '../store/roomstore'
+import { getSocket }        from '../lib/socket'
 import { PRESENCE_COLORS }  from '../lib/constants'
 
 const RunIcon   = () => <svg width="11" height="11" viewBox="0 0 12 12" fill="currentColor"><path d="M3 2l7 4-7 4V2z"/></svg>
@@ -36,6 +38,7 @@ function Topbar({
   isRunning, onRun,
   notesOpen, videoOpen, onToggleNotes, onToggleVideo,
   isMobile, onlineUsers,
+  isOwner, onRenameRoom,
 }: {
   roomName: string; roomId: string
   language: string; onLanguageChange: (l: string) => void
@@ -44,8 +47,22 @@ function Topbar({
   onToggleNotes: () => void; onToggleVideo: () => void
   isMobile: boolean
   onlineUsers: { id: string; name: string; color: string }[]
+  isOwner: boolean
+  onRenameRoom: (name: string) => void
 }) {
   const navigate = useNavigate()
+  const [editingName, setEditingName] = useState(false)
+  const [draftName,   setDraftName]   = useState(roomName)
+
+  // Keep draft in sync when roomName changes externally
+  useEffect(() => { setDraftName(roomName) }, [roomName])
+
+  const commitRename = () => {
+    setEditingName(false)
+    const trimmed = draftName.trim()
+    if (trimmed && trimmed !== roomName) onRenameRoom(trimmed)
+    else setDraftName(roomName)
+  }
 
   // Build presence users for Presence component
   const { user } = useAuthStore()
@@ -81,21 +98,52 @@ function Topbar({
           border: 'none', cursor: 'pointer', padding: 0, flexShrink: 0,
         }}
       >
-        Depot
+        <img src="/logo.png" alt="Depot" style={{ height: 36, width: 'auto', display: 'block' }} />
       </motion.button>
 
       <div style={{ width: 1, height: 16, background: 'var(--color-border-md)', flexShrink: 0 }}/>
 
-      {/* Room name — font: Syne */}
-      <span style={{
-        fontFamily: 'var(--font-heading)', fontWeight: 600,
-        fontSize: '0.825rem', color: 'var(--color-text-primary)',
-        letterSpacing: '-0.01em', flexShrink: 0,
-        maxWidth: isMobile ? 80 : 160,
-        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-      }}>
-        {roomName}
-      </span>
+      {/* Room name — editable for owner, read-only for others */}
+      {isOwner && editingName ? (
+        <input
+          autoFocus
+          value={draftName}
+          onChange={e => setDraftName(e.target.value)}
+          onBlur={commitRename}
+          onKeyDown={e => {
+            if (e.key === 'Enter') commitRename()
+            if (e.key === 'Escape') { setEditingName(false); setDraftName(roomName) }
+          }}
+          style={{
+            fontFamily:   'var(--font-heading)', fontWeight: 600,
+            fontSize:     '0.825rem', color: 'var(--color-text-primary)',
+            letterSpacing: '-0.01em', flexShrink: 0,
+            maxWidth:     isMobile ? 80 : 160,
+            background:   'var(--color-elevated)',
+            border:       '1px solid var(--color-accent)',
+            borderRadius: 'var(--radius-xs)',
+            outline:      'none',
+            padding:      '1px 6px',
+          }}
+        />
+      ) : (
+        <span
+          title={isOwner ? 'Click to rename room' : roomName}
+          onClick={() => isOwner && setEditingName(true)}
+          style={{
+            fontFamily:   'var(--font-heading)', fontWeight: 600,
+            fontSize:     '0.825rem', color: 'var(--color-text-primary)',
+            letterSpacing: '-0.01em', flexShrink: 0,
+            maxWidth:     isMobile ? 80 : 160,
+            overflow:     'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+            cursor:       isOwner ? 'text' : 'default',
+            borderBottom: isOwner ? '1px dashed rgba(124,111,247,0.4)' : 'none',
+            paddingBottom: isOwner ? 1 : 0,
+          }}
+        >
+          {roomName}
+        </span>
+      )}
 
       {/* Language selector */}
       <LanguageSelector value={language} onChange={onLanguageChange} />
@@ -181,9 +229,9 @@ function StatusBar({
         flexShrink: 0, userSelect: 'none', overflowX: 'auto',
       }}
     >
-      <span style={{ fontFamily: 'var(--font-heading)', fontWeight: 800, fontSize: '0.75rem', color: '#fff', letterSpacing: '-0.02em', flexShrink: 0 }}>
-        Depot
-      </span>
+      <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center' }}>
+        <img src="/logo.png" alt="Depot" style={{ height: 18, width: 'auto' }} />
+      </div>
       <Sep /><span style={{ flexShrink: 0 }}>{roomName}</span>
       <Sep /><span style={{ flexShrink: 0 }}>{language}</span>
       <Sep /><span style={{ flexShrink: 0 }}>Ln {cursorPos.line}, Col {cursorPos.col}</span>
@@ -226,6 +274,7 @@ export default function EditorPage() {
 
   // ── Real hooks ───────────────────────────────────────────
   const { currentRoom, onlineUsers, handleLeave } = useRoom(roomId)
+  const { updateRoom, setCurrentRoom } = useRoomStore()
 
   const {
     code, language, cursorPos, isRunning,
@@ -240,6 +289,34 @@ export default function EditorPage() {
     roomId,
     colorIdx >= 0 ? colorIdx : 0
   )
+
+  // ── Is current user the room owner ──────────────────────
+  const isOwner = !!user && !!currentRoom && currentRoom.created_by === user.id
+
+  // ── Room rename (owner only) ─────────────────────────────
+  const handleRenameRoom = useCallback(async (newName: string) => {
+    if (!isOwner) return
+    try {
+      await updateRoom(roomId, { name: newName })
+      // Broadcast rename to all users in the room
+      const socket = getSocket()
+      socket.emit('room:rename', { roomId, name: newName })
+    } catch (err) {
+      console.error('Failed to rename room:', err)
+    }
+  }, [isOwner, roomId, updateRoom])
+
+  // ── Listen for room rename from server ───────────────────
+  useEffect(() => {
+    if (!roomId) return
+    const socket = getSocket()
+    socket.on('room:renamed', (data: { name: string }) => {
+      if (currentRoom) {
+        setCurrentRoom({ ...currentRoom, name: data.name })
+      }
+    })
+    return () => { socket.off('room:renamed') }
+  }, [roomId, currentRoom])
 
   // ── Responsive ───────────────────────────────────────────
   useEffect(() => {
@@ -333,6 +410,8 @@ export default function EditorPage() {
             name:  u.username,
             color: u.color ?? PRESENCE_COLORS[i % PRESENCE_COLORS.length],
           }))}
+          isOwner={isOwner}
+          onRenameRoom={handleRenameRoom}
         />
 
         {/* ── Notes panel ── */}
