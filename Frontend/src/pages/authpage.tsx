@@ -1,7 +1,10 @@
-import { useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { useState, useRef, useMemo } from 'react'
+import { motion, AnimatePresence, useMotionValue, useSpring, useTransform } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import useAuthStore from '../store/authstore'
+import { Canvas, useFrame } from '@react-three/fiber'
+import { Points, PointMaterial } from '@react-three/drei'
+import * as THREE from 'three'
 
 /* ============================================================
    AuthPage — Login + Register
@@ -187,8 +190,8 @@ function InputField({
   )
 }
 
-/* ── Background grid decoration ─────────────────────────────── */
-function GridBackground() {
+/* ── 3D Network Background ────────────────────────────────────────────── */
+function NetworkBackground() {
   return (
     <div style={{
       position:   'fixed',
@@ -197,42 +200,49 @@ function GridBackground() {
       pointerEvents: 'none',
       zIndex:     0,
     }}>
-      {/* Subtle dot grid */}
-      <div style={{
-        position:   'absolute',
-        inset:      0,
-        backgroundImage: 'radial-gradient(circle, rgba(124,111,247,0.08) 1px, transparent 1px)',
-        backgroundSize: '32px 32px',
-      }}/>
+      <Canvas camera={{ position: [0, 0, 1] }} gl={{ antialias: false, alpha: true }}>
+        <Particles />
+      </Canvas>
       {/* Radial fade from center */}
       <div style={{
         position:   'absolute',
         inset:      0,
         background: 'radial-gradient(ellipse 80% 60% at 50% 50%, transparent 40%, var(--color-app) 100%)',
       }}/>
-      {/* Accent glow top-left */}
-      <div style={{
-        position:   'absolute',
-        top:        '-10%',
-        left:       '-5%',
-        width:      500,
-        height:     500,
-        borderRadius: '50%',
-        background: 'radial-gradient(circle, rgba(124,111,247,0.07) 0%, transparent 70%)',
-        filter:     'blur(40px)',
-      }}/>
-      {/* Accent glow bottom-right */}
-      <div style={{
-        position:   'absolute',
-        bottom:     '-10%',
-        right:      '-5%',
-        width:      400,
-        height:     400,
-        borderRadius: '50%',
-        background: 'radial-gradient(circle, rgba(124,111,247,0.05) 0%, transparent 70%)',
-        filter:     'blur(40px)',
-      }}/>
     </div>
+  )
+}
+
+function Particles(props: any) {
+  const ref = useRef<any>(null)
+  
+  const positions = useMemo(() => {
+    const count = 3000
+    const pos = new Float32Array(count * 3)
+    for(let i = 0; i < count; i++) {
+      const r = 1.5 * Math.cbrt(Math.random())
+      const theta = Math.random() * 2 * Math.PI
+      const phi = Math.acos(2 * Math.random() - 1)
+      pos[i*3] = r * Math.sin(phi) * Math.cos(theta)
+      pos[i*3+1] = r * Math.sin(phi) * Math.sin(theta)
+      pos[i*3+2] = r * Math.cos(phi)
+    }
+    return pos
+  }, [])
+
+  useFrame((state, delta) => {
+    if (ref.current) {
+      ref.current.rotation.x -= delta / 15
+      ref.current.rotation.y -= delta / 20
+    }
+  })
+
+  return (
+    <group rotation={[0, 0, Math.PI / 4]}>
+      <Points ref={ref} positions={positions} stride={3} frustumCulled={false} {...props}>
+        <PointMaterial transparent color="#7c6ff7" size={0.006} sizeAttenuation={true} depthWrite={false} opacity={0.6} />
+      </Points>
+    </group>
   )
 }
 
@@ -327,24 +337,53 @@ export default function AuthPage() {
     }
   }
 
+  const x = useMotionValue(0)
+  const y = useMotionValue(0)
+
+  const mouseXSpring = useSpring(x, { stiffness: 300, damping: 30 })
+  const mouseYSpring = useSpring(y, { stiffness: 300, damping: 30 })
+
+  const rotateX = useTransform(mouseYSpring, [-0.5, 0.5], ["7deg", "-7deg"])
+  const rotateY = useTransform(mouseXSpring, [-0.5, 0.5], ["-7deg", "7deg"])
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect()
+    const width = rect.width
+    const height = rect.height
+    const mouseX = e.clientX - rect.left
+    const mouseY = e.clientY - rect.top
+    x.set(mouseX / width - 0.5)
+    y.set(mouseY / height - 0.5)
+  }
+
+  const handleMouseLeave = () => {
+    x.set(0)
+    y.set(0)
+  }
+
   return (
-    <div style={{
-      minHeight:      '100vh',
-      width:          '100%',
-      display:        'flex',
-      flexDirection:  'column',
-      alignItems:     'center',
-      justifyContent: 'center',
-      background:     'var(--color-app)',
-      padding:        '2rem 1rem',
-      position:       'relative',
-      overflow:       'hidden',
-    }}>
+    <div
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
+      style={{
+        minHeight:      '100vh',
+        width:          '100%',
+        display:        'flex',
+        flexDirection:  'column',
+        alignItems:     'center',
+        justifyContent: 'center',
+        background:     'var(--color-app)',
+        padding:        '2rem 1rem',
+        position:       'relative',
+        overflow:       'hidden',
+        perspective:    '1000px',
+      }}
+    >
       <style>{`
         @keyframes auth-spin { to { transform: rotate(360deg); } }
       `}</style>
 
-      <GridBackground />
+      <NetworkBackground />
 
       {/* ── Logo ── */}
       <motion.div
@@ -363,13 +402,14 @@ export default function AuthPage() {
         }}/>
       </motion.div>
 
-      {/* ── Card ── */}
-      <div style={{
+      <motion.div style={{
         width:    '100%',
         maxWidth: 420,
         position: 'relative',
         zIndex:   1,
-        overflow: 'hidden',
+        rotateX,
+        rotateY,
+        transformStyle: 'preserve-3d',
       }}>
         <AnimatePresence mode="wait" custom={dir}>
           {view === 'login' ? (
@@ -740,7 +780,7 @@ export default function AuthPage() {
             </motion.div>
           )}
         </AnimatePresence>
-      </div>
+      </motion.div>
 
       {/* ── Footer — font: Inter ── */}
       <motion.p
