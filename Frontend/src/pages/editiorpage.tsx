@@ -6,7 +6,6 @@ import { useParams, useNavigate } from 'react-router-dom'
 import Editor          from '../components/editior'
 import Terminal        from '../components/terminal'
 import Notepad         from '../components/notepad'
-import { Sidebar }     from '../components/sidebar'
 import { Presence }    from '../components/sidebar'
 import { VideoPanel }  from '../components/VideoPanel'
 import ShareButton     from '../components/sharebutton'
@@ -20,6 +19,7 @@ import { useRoom }          from '../hooks/useRoom'
 import { useEditor }        from '../hooks/useEditor'
 import { useTerminal }      from '../hooks/useTerminal'
 import { useCollaboration } from '../hooks/useCollaboration'
+import { useWebRTC }       from '../hooks/useWebRTC'
 import useAuthStore         from '../store/authstore'
 import useUIStore           from '../store/uiStore'
 import useRoomStore         from '../store/roomstore'
@@ -264,9 +264,7 @@ export default function EditorPage() {
     openLeaveRoom, closeLeaveRoom,
   } = useUIStore()
 
-  // ── Media state ──────────────────────────────────────────
-  const [micOn,   setMicOn]   = useState(true)
-  const [camOn,   setCamOn]   = useState(false)
+  // ── Media / WebRTC state ────────────────────────────────
   const [audioOn, setAudioOn] = useState(true)
 
   // ── Note state ───────────────────────────────────────────
@@ -289,6 +287,15 @@ export default function EditorPage() {
     roomId,
     colorIdx >= 0 ? colorIdx : 0
   )
+
+  // ── WebRTC ───────────────────────────────────────────────
+  const {
+    localStream, localVideoRef, remotePeers,
+    micOn, camOn,
+    toggleMic, toggleCam,
+    joinVideoRoom, leaveVideoRoom,
+    hasJoined, permissionError,
+  } = useWebRTC(roomId, user?.id ?? '', user?.username ?? 'Anonymous')
 
   // ── Is current user the room owner ──────────────────────
   const isOwner = !!user && !!currentRoom && currentRoom.created_by === user.id
@@ -330,34 +337,17 @@ export default function EditorPage() {
     return () => window.removeEventListener('resize', check)
   }, [])
 
-  // ── Build participants for VideoPanel ────────────────────
-  const participants = [
-    // Local user first
-    {
-      id:      user?.id ?? 'local',
-      name:    user?.username ?? 'You',
-      colorIdx: colorIdx >= 0 ? colorIdx : 0,
-      isLocal:  true,
-      camOff:   !camOn,
-      muted:    !micOn,
-      speaking: false,
-    },
-    // Remote users
-    ...onlineUsers
-      .filter(u => u.userId !== user?.id)
-      .map((u, i) => ({
-        id:       u.socketId,
-        name:     u.username,
-        colorIdx: i + 1,
-        isLocal:  false,
-        camOff:   true,
-        muted:    false,
-        speaking: false,
-      })),
-  ]
-
   // ── Notepad active users ─────────────────────────────────
   const noteActiveUsers = onlineUsers
+    .filter(u => u.userId !== user?.id)
+    .map((u, i) => ({
+      id:    u.userId,
+      name:  u.username,
+      color: u.color ?? PRESENCE_COLORS[i % PRESENCE_COLORS.length],
+    }))
+
+  // ── Online users list for video panel ───────────────────
+  const videoOnlineUsers = onlineUsers
     .filter(u => u.userId !== user?.id)
     .map((u, i) => ({
       id:    u.userId,
@@ -417,12 +407,15 @@ export default function EditorPage() {
         {/* ── Notes panel ── */}
         {!isMobile && !isTablet && (
           <div style={{ gridArea: 'notepad', background: 'var(--color-surface)', overflow: 'hidden' }}>
-            <Sidebar title="Notes" badge="private" badgeOk={true}>
-              <Notepad
-                value={note}
-                onChange={setNote}
-              />
-            </Sidebar>
+            <Notepad
+              roomId={roomId}
+              userId={user?.id ?? ''}
+              userName={user?.username ?? 'Anonymous'}
+              userColor={PRESENCE_COLORS[colorIdx >= 0 ? colorIdx % PRESENCE_COLORS.length : 0]}
+              privateValue={note}
+              onPrivateChange={setNote}
+              activeUsers={noteActiveUsers}
+            />
           </div>
         )}
 
@@ -462,14 +455,21 @@ export default function EditorPage() {
         {!isMobile && (
           <div style={{ gridArea: 'video', background: 'var(--color-surface)', overflow: 'hidden' }}>
             <VideoPanel
-              participants={participants}
+              localStream={localStream}
+              localVideoRef={localVideoRef}
+              remotePeers={remotePeers}
               micOn={micOn}
               camOn={camOn}
               audioOn={audioOn}
-              onMicToggle={() => setMicOn(v => !v)}
-              onCamToggle={() => setCamOn(v => !v)}
+              hasJoined={hasJoined}
+              permissionError={permissionError}
+              onMicToggle={toggleMic}
+              onCamToggle={toggleCam}
               onAudioToggle={() => setAudioOn(v => !v)}
-              onLeave={openLeaveRoom}
+              onJoin={joinVideoRoom}
+              onLeave={leaveVideoRoom}
+              onLeaveRoom={openLeaveRoom}
+              onlineUsers={videoOnlineUsers}
             />
           </div>
         )}
@@ -506,9 +506,15 @@ export default function EditorPage() {
                 zIndex: 61, display: 'flex', flexDirection: 'column', overflow: 'hidden',
               }}
             >
-              <Sidebar title="Notes" badge="private" badgeOk={true}>
-                <Notepad value={note} onChange={setNote} />
-              </Sidebar>
+              <Notepad
+                roomId={roomId}
+                userId={user?.id ?? ''}
+                userName={user?.username ?? 'Anonymous'}
+                userColor={PRESENCE_COLORS[colorIdx >= 0 ? colorIdx % PRESENCE_COLORS.length : 0]}
+                privateValue={note}
+                onPrivateChange={setNote}
+                activeUsers={noteActiveUsers}
+              />
             </motion.div>
           </>
         )}
@@ -535,12 +541,21 @@ export default function EditorPage() {
               }}
             >
               <VideoPanel
-                participants={participants}
-                micOn={micOn} camOn={camOn} audioOn={audioOn}
-                onMicToggle={() => setMicOn(v => !v)}
-                onCamToggle={() => setCamOn(v => !v)}
+                localStream={localStream}
+                localVideoRef={localVideoRef}
+                remotePeers={remotePeers}
+                micOn={micOn}
+                camOn={camOn}
+                audioOn={audioOn}
+                hasJoined={hasJoined}
+                permissionError={permissionError}
+                onMicToggle={toggleMic}
+                onCamToggle={toggleCam}
                 onAudioToggle={() => setAudioOn(v => !v)}
-                onLeave={() => { toggleVideo(); openLeaveRoom() }}
+                onJoin={joinVideoRoom}
+                onLeave={() => { leaveVideoRoom(); toggleVideo() }}
+                onLeaveRoom={() => { toggleVideo(); openLeaveRoom() }}
+                onlineUsers={videoOnlineUsers}
               />
             </motion.div>
           </>

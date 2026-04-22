@@ -3,6 +3,7 @@ import { registerCursorHandlers }    from './cursor'
 import { registerAwarenessHandlers } from './awareness'
 import { registerTerminalHandlers }  from './terminal'
 import { registerWebRTCHandlers }    from './webrtc'
+import { registerNotesHandlers }     from './notes'
 
 /* ============================================================
    Socket.io — main handler registry
@@ -19,6 +20,7 @@ export const registerSocketHandlers = (io: Server) => {
     registerAwarenessHandlers(io, socket)
     registerTerminalHandlers(io, socket)
     registerWebRTCHandlers(io, socket)
+    registerNotesHandlers(io, socket)
 
     // ── Connection info ──────────────────────────────────
     socket.on('disconnect', (reason) => {
